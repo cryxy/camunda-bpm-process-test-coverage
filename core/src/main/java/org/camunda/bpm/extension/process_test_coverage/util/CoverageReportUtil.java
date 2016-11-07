@@ -2,6 +2,7 @@ package org.camunda.bpm.extension.process_test_coverage.util;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Enumeration;
@@ -15,10 +16,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.camunda.bpm.engine.ProcessEngine;
+import org.camunda.bpm.engine.RepositoryService;
 import org.camunda.bpm.engine.repository.ProcessDefinition;
 import org.camunda.bpm.extension.process_test_coverage.junit.rules.CoverageTestRunState;
 import org.camunda.bpm.extension.process_test_coverage.model.AggregatedCoverage;
 import org.camunda.bpm.extension.process_test_coverage.model.CoveredFlowNode;
+import org.camunda.bpm.model.bpmn.Bpmn;
+import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 
 /**
  * Utility for generating graphical class and method coverage reports.
@@ -47,7 +51,7 @@ public class CoverageReportUtil {
      */
     public static void createClassReport(ProcessEngine processEngine, CoverageTestRunState coverageTestRunState) {
 
-        createReport(coverageTestRunState, true);
+        createReport(coverageTestRunState, true, processEngine);
 
     }
 
@@ -61,7 +65,7 @@ public class CoverageReportUtil {
     public static void createCurrentTestMethodReport(ProcessEngine processEngine,
             CoverageTestRunState coverageTestRunState) {
 
-        createReport(coverageTestRunState, false);
+        createReport(coverageTestRunState, false, processEngine);
 
     }
 
@@ -74,7 +78,7 @@ public class CoverageReportUtil {
      *            generated. When false an aggregated class coverage report is
      *            generated.
      */
-    private static void createReport(CoverageTestRunState coverageTestRunState, boolean classReport) {
+    private static void createReport(CoverageTestRunState coverageTestRunState, boolean classReport, ProcessEngine processEngine) {
 
         installBowerComponents();
 
@@ -102,7 +106,7 @@ public class CoverageReportUtil {
                         : getReportName(processDefinition, testName);
 
                 final String reportDirectory = getReportDirectoryPath(testClass);
-                final String bpmnXml = getBpmnXml(processDefinition);
+                final String bpmnXml = getBpmnXml(processDefinition,processEngine);
 
                 // Generate report
 
@@ -227,13 +231,19 @@ public class CoverageReportUtil {
      * @throws IOException
      *             Thrown if the BPMN resource is not found.
      */
-    protected static String getBpmnXml(ProcessDefinition processDefinition) throws IOException {
+    protected static String getBpmnXml(ProcessDefinition processDefinition, ProcessEngine processEngine) throws IOException {
 
         InputStream inputStream = CoverageReportUtil.class.getClassLoader().getResourceAsStream(
                 processDefinition.getResourceName());
         if (inputStream == null) {
-            inputStream = new FileInputStream(processDefinition.getResourceName());
+            try {
+				inputStream = new FileInputStream(processDefinition.getResourceName());
+			} catch (FileNotFoundException e) {
+				BpmnModelInstance bpmnModelInstance = processEngine.getRepositoryService().getBpmnModelInstance(processDefinition.getId());
+	        	return Bpmn.convertToString(bpmnModelInstance);
+			}
         }
+        
 
         return IOUtils.toString(inputStream);
     }

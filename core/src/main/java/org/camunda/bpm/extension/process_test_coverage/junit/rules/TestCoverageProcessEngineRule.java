@@ -13,6 +13,7 @@ import org.camunda.bpm.engine.impl.bpmn.parser.BpmnParseListener;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.event.CompensationEventHandler;
 import org.camunda.bpm.engine.impl.event.EventHandler;
+import org.camunda.bpm.engine.impl.event.EventType;
 import org.camunda.bpm.engine.repository.ProcessDefinition;
 import org.camunda.bpm.engine.test.Deployment;
 import org.camunda.bpm.engine.test.ProcessEngineRule;
@@ -191,6 +192,14 @@ public class TestCoverageProcessEngineRule extends ProcessEngineRule {
 
         }
     }
+    
+    public void initializeMethodCoverage(String deploymentId, String methodName) {
+    	List<ProcessDefinition> deployedProcessDefinitions = processEngine.getRepositoryService().createProcessDefinitionQuery().deploymentId(deploymentId).list();
+    	coverageTestRunState.initializeTestMethodCoverage(processEngine,
+                deploymentId,
+                deployedProcessDefinitions,
+                methodName);
+    }
 
     /**
      * Initialize the coverage run state depending on the rule annotations and
@@ -245,7 +254,7 @@ public class TestCoverageProcessEngineRule extends ProcessEngineRule {
         // Compensation event handler
 
         final EventHandler compensationEventHandler = processEngineConfiguration.getEventHandler(
-                CompensationEventHandler.EVENT_HANDLER_TYPE);
+                EventType.COMPENSATE.name());
         if (compensationEventHandler != null && compensationEventHandler instanceof CompensationEventCoverageHandler) {
 
             final CompensationEventCoverageHandler compensationEventCoverageHandler = (CompensationEventCoverageHandler) compensationEventHandler;
